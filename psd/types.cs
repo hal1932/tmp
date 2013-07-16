@@ -44,6 +44,8 @@ namespace psd
         Saturation,
         Color,
         Luminosity,
+
+        Count
     }
 
     public enum DefaultColor

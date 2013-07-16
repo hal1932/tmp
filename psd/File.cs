@@ -10,6 +10,7 @@ namespace psd
     {
         public class HeaderInfo
         {
+            public string FileName     { get { return this.fileName; } }
             public int ChannelCount    { get { return this.channelCount; } }
             public int Width           { get { return this.width; } }
             public int Height          { get { return this.height; } }
@@ -17,6 +18,7 @@ namespace psd
             public ColorMode ColorMode { get { return this.colorMode; } }
             public int LayerCount      { get { return this.layerCount; } }
 
+            internal string fileName;
             internal int channelCount;
             internal int width, height;
             internal int bitsPerPixel;
@@ -42,6 +44,7 @@ namespace psd
 
         public class LayerHeaderInfo
         {
+            public int Index        { get { return this.index; } }
             public string Name      { get { return this.name; } }
             public int Top          { get { return this.top; } }
             public int Left         { get { return this.left; } }
@@ -50,8 +53,10 @@ namespace psd
             public int ChannelCount { get { return this.channelCount; } }
             public BlendMode Blend  { get { return this.blendMode; } }
             public int Opacity      { get { return this.opacity; } }
+            public bool Visible     { get { return this.visible; } }
             public LayerMask Mask   { get { return this.layerMask; } }
 
+            internal int index;
             internal string name;
             internal int top, left, bottom, right;
             internal int channelCount;
@@ -64,6 +69,9 @@ namespace psd
 
         public HeaderInfo Header { get { return this.header; } }
         public List<LayerHeaderInfo> LayerHeaderList { get { return this.layerHeaderList; } }
+
+
+        private string filename = null;
 
 
         public File() { }
@@ -80,6 +88,7 @@ namespace psd
 
         public bool Open(string filename)
         {
+            this.filename = filename;
             if (this.reader != null)
             {
                 this.Close();
@@ -91,11 +100,12 @@ namespace psd
         public void Parse()
         {
             this.header = this.ReadHeader();
+            this.header.fileName = this.filename;
 
             this.layerHeaderList = new List<LayerHeaderInfo>();
             for (int i = 0, layerCount = this.header.layerCount; i < layerCount; ++i)
             {
-                LayerHeaderInfo info = this.ReadLayerHeader();
+                LayerHeaderInfo info = this.ReadLayerHeader(i + 1);
                 this.layerHeaderList.Add(info);
             }
         }
@@ -212,10 +222,11 @@ namespace psd
             return header;
         }
 
-        private LayerHeaderInfo ReadLayerHeader()
+        private LayerHeaderInfo ReadLayerHeader(int index)
         {
             var header = new LayerHeaderInfo();
 
+            header.index = index;
             header.top = this.ReadNextInt32();
             header.left = this.ReadNextInt32();
             header.bottom = this.ReadNextInt32();
@@ -241,7 +252,7 @@ namespace psd
             //bit 0 = transparency protected; bit 1 = visible; bit 2 = obsolete;
             //bit 3 = 1 for Photoshop 5.0 and later, tells if bit 4 has useful information;
             //bit 4 = pixel data irrelevant to appearance of document
-            header.visible = ((reader.ReadByte() & 0x02) != 1);
+            header.visible = ((reader.ReadByte() & 0x02) != 0x02);
 
             // Filler (zero)
             reader.ReadByte();
